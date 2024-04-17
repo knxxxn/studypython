@@ -1,7 +1,7 @@
 import requests
 import json
 
-slack_webhook_url = "https://hooks.slack.com/services/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"
+slack_webhook_url = "슬랙 api 작성"
 
 def sendSlackhook(strText):
     headers={
