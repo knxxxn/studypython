@@ -27,7 +27,6 @@ def bfs(start, graph, n):
     return sum(distance)
 
 def main():
-    # 입력 받기
     n, m = map(int, sys.stdin.readline().split())
     
     # 그래프 초기화 (인접 리스트)
@@ -54,7 +53,8 @@ def main():
 if __name__ == "__main__":
     main()
 
-# 인접 행렬을 사용한 풀이
+
+# 인접 행렬
 def bfs_matrix(start, matrix, n):
     distance = [0] * (n + 1)
     visited = [False] * (n + 1)
@@ -98,7 +98,6 @@ def main_matrix():
     
     print(min_user)
 
-# 인접 행렬 풀이 실행
-# if __name__ == "__main__":
-#     main_matrix()
+if __name__ == "__main__":
+    main_matrix()
 
