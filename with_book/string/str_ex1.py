@@ -3,6 +3,28 @@
 import collections
 from typing import Deque
 
+def is_palindrome(s):
+    chars = []
+
+    for c in s:
+        if c.isalnum():          # 영문자 + 숫자만
+            chars.append(c.lower())
+
+    while len(chars) > 1:
+        if chars.pop(0) != chars.pop():
+            return False
+
+    return True
+
+def is_palindrome(s):
+    chars = []
+
+    for c in s:
+        if c.isalnum():
+            chars.append(c.lower())
+
+    return chars == chars[::-1]
+
 
 def isPalindrome(self, s: str) -> bool: #리스트 풀이
     strs=[]

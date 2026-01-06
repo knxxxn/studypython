@@ -1,4 +1,4 @@
-#금지된 단어를 제외한 가장 흔하게 등장하는 단어를 출력해라. 대소문자 구분을 하지 않으며, 구두점(마침표, 쉼표 등) 또한 무시한다
+#금지된 단어를 제외한 가장 흔하게 등장하는 단어를 출력해라. 대소문자 구분을 하지 않으며, 구두점(마침표, 쉼표 등) 또한 무시한다.
 #입력 paragraph = "hit a ball, the hit ball"  banned=["hit"]
 #출력 "ball"
 
@@ -26,3 +26,17 @@ def commonWord(paragraph, banned):
     counter = Counter(filtered_words)
 
     return counter.most_common(1)[0][0]
+
+
+class Solution:
+    def mostCommonWord(self, paragraph: str, banned: list) -> str:
+        paragraph = paragraph.lower()
+        paragraph = re.sub(r'[^a-z]', ' ', paragraph)
+
+        words = paragraph.split()
+        banned_set = set(banned)
+
+        filtered = [w for w in words if w not in banned_set]
+
+        counter = Counter(filtered)
+        return counter.most_common(1)[0][0]
