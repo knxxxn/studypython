@@ -19,3 +19,9 @@ def sortColors(nums):
 
 # 테스트용
 print(sortColors([2, 0, 2, 1, 1, 0]))
+
+#간단 버전
+def solution(nums):
+    return sorted(nums)
+
+print(solution([2, 0, 2, 1, 1, 0]))
