@@ -1,0 +1,4 @@
+# 매크로 관련
+project/macro/macro_config.py
+project/macro/*.html
+project/macro/__pycache__/

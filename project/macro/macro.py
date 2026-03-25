@@ -1,5 +1,7 @@
 from playwright.sync_api import sync_playwright
+from playwright_stealth import Stealth
 import time
+import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from macro_config import DEFAULT_CONFIG
@@ -23,74 +25,9 @@ def precise_wait(target_time):
 
 
 # ─────────────────────────────
-# 좌석 자동 선택 스크립트
-# ─────────────────────────────
-SEAT_SCRIPT = """
-(() => {
-    if (window.__seat_auto) return;
-    window.__seat_auto = true;
-
-    function clickConfirm() {
-        // 더 넓은 범위로 확인 버튼 탐색
-        let selectors = [
-            '#btnSeatOk',
-            'a[onclick*="SeatOk"]',
-            'img[src*="btn_seat_ok"]',
-            'a[onclick*="seatOk"]',
-            'input[type=button][value*="선택완료"]',
-            'a[href*="SeatOk"]'
-        ];
-        for (let sel of selectors) {
-            let btn = document.querySelector(sel);
-            if (btn) {
-                console.log('[AUTO] 확인 버튼 클릭:', sel);
-                btn.click();
-                return true;
-            }
-        }
-        console.warn('[AUTO] 확인 버튼 못 찾음');
-        return false;
-    }
-
-    function pickSeat() {
-        let seats = document.querySelectorAll('img[src*="seat"], div[title]');
-        for (let seat of seats) {
-            let rect = seat.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-                seat.click();
-                console.log('[AUTO] 좌석 클릭:', seat);
-                // 클릭 직후 확인 버튼도 바로 대기
-                setTimeout(() => {
-                    let tries = 0;
-                    let t = setInterval(() => {
-                        if (clickConfirm() || tries++ > 30) clearInterval(t);
-                    }, 100);
-                }, 150);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    let tries = 0;
-    let interval = setInterval(() => {
-        if (pickSeat() || tries++ > 100) clearInterval(interval);
-    }, 30);
-})();
-"""
-
-
-def inject_script(frame):
-    try:
-        frame.evaluate(SEAT_SCRIPT)
-    except:
-        pass
-
-
-# ─────────────────────────────
 # 메인 실행
 # ─────────────────────────────
-with sync_playwright() as p:
+with Stealth().use_sync(sync_playwright()) as p:
     browser = p.chromium.launch(
         headless=False,
         args=[
@@ -101,125 +38,190 @@ with sync_playwright() as p:
     )
 
     context = browser.new_context(
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36",
         locale="ko-KR",
         viewport={"width": 1600, "height": 900},
     )
 
-    # 🔥 초강력 Stealth 설정 (STClab 봇 탐지 우회)
-    stealth_js = """
-        // 1. webdriver 플래그 완벽 제거
-        Object.defineProperty(navigator, 'webdriver', { get: () => false });
-        
-        // 2. Chrome 속성 위장
-        window.chrome = {
-            runtime: {},
-            app: {},
-            csi: () => {},
-            loadTimes: () => {}
-        };
-        
-        // 3. 권한 상태 조작 (알림 등)
-        const originalQuery = window.navigator.permissions.query;
-        window.navigator.permissions.query = (parameters) => {
-            return parameters.name === 'notifications' 
-                ? Promise.resolve({ state: Notification.permission }) 
-                : originalQuery(parameters);
-        };
-        
-        // 4. 플러그인 및 언어 조작
-        Object.defineProperty(navigator, 'languages', { get: () => ['ko-KR', 'ko', 'en-US', 'en'] });
-        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
-        
-        // 5. User-Agent에서 Headless 흔적이나 비정상 흔적 제거
-        Object.defineProperty(navigator, 'userAgent', {
-            get: () => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
-        });
-        
-        // 6. 하드웨어 정보 속이기 (Concurrency, Memory)
-        Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
-        Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
-        
-        // 7. WebGL 벤더 속이기
-        const getParameter = WebGLRenderingContext.prototype.getParameter;
-        WebGLRenderingContext.prototype.getParameter = function(parameter) {
-            if (parameter === 37445) return 'Intel Inc.'; // UNMASKED_VENDOR_WEBGL
-            if (parameter === 37446) return 'Intel Iris OpenGL Engine'; // UNMASKED_RENDERER_WEBGL
-            return getParameter.apply(this, [parameter]);
-        };
-    """
-    context.add_init_script(stealth_js)
-
     page = context.new_page()
 
     try:
-        # ───────── 로그인 (사람처럼)
+        # ───────── 로그인
         page.goto("https://www.yes24.com/Templates/FTLogin.aspx")
 
-        page.mouse.move(300, 300)
-        page.mouse.move(600, 400)
+        page.mouse.move(random.randint(200, 400), random.randint(200, 400))
+        time.sleep(random.uniform(0.1, 0.3))
+        page.mouse.move(random.randint(500, 700), random.randint(300, 500))
+        time.sleep(random.uniform(0.1, 0.3))
 
         page.click('#SMemberID')
-        page.keyboard.type(config.user_id, delay=50)
+        page.keyboard.type(config.user_id, delay=random.randint(30, 80))
 
+        time.sleep(random.uniform(0.2, 0.5))
         page.click('#SMemberPassword')
-        page.keyboard.type(config.user_pw, delay=50)
+        page.keyboard.type(config.user_pw, delay=random.randint(30, 80))
 
-        time.sleep(0.3)
+        time.sleep(random.uniform(0.3, 0.7))
         page.click('#btnLogin')
 
         page.wait_for_load_state('domcontentloaded')
-        time.sleep(1)
+        time.sleep(random.uniform(1.0, 2.0))
+
+        # ───────── 메인 페이지 경유
+        page.goto("https://www.yes24.com")
+        time.sleep(random.uniform(1.0, 2.0))
 
         # ───────── 이벤트 페이지
         page.goto(config.event_url)
 
-        print("⏳ 오픈 대기 중...")
-        precise_wait(config.open_time)
+        if not config.dry_run:
+            print("⏳ 오픈 대기 중...")
+            precise_wait(config.open_time)
 
-        # ───────── 예매 클릭   
-        btn = page.locator('a:has(img[src*="btn_reserve"]), a.btn_reserve').first
-        btn.scroll_into_view_if_needed()
-        time.sleep(0.1)
-        btn.click()
-        
-        # 사용자가 아무 때나 클릭해서 새 창(팝업)이 열리면 그걸 낚아챔
-        ticket_page = context.wait_for_event("page", timeout=0)
+        # ───────── 예매 클릭
+        time.sleep(1)
+        page.evaluate("jsf_pdi_GoPerfSale(77)")
+        print("🎫 예매 버튼 클릭 완료")
+
+        # ───────── 팝업 감지
+        ticket_page = context.wait_for_event("page", timeout=30000)
         ticket_page.wait_for_load_state("domcontentloaded")
-        print("🎯 팝업(좌석/날짜 선택창) 진입 감지 성공!")
+        print("🎯 팝업 진입 성공!")
 
-        # ───────── 좌석 스크립트 주입 (팝업 창과 거기서 열리는 프레임 모두)
-        ticket_page.add_init_script(SEAT_SCRIPT)
-        ticket_page.on("frameattached", lambda f: inject_script(f))
+        # ───────── step1: 날짜 클릭
+        time.sleep(1)
+        ticket_page.locator(f'a[id="{config.perf_date}"]').click()
+        print(f"📅 날짜 선택: {config.perf_date}")
 
-        print("🪑 좌석 자동 선택 대기")
+        # ───────── step1: 회차 선택 (JS 변수 직접 설정)
+        ticket_page.wait_for_selector('#ulTime li', timeout=10000)
+        time.sleep(0.5)
 
-        # ✅ 이 부분 추가 - 좌석 선택 화면 HTML 덤프
-        time.sleep(2)  # 페이지 로딩 대기
-        html = ticket_page.content()
-        with open("dump.html", "w", encoding="utf-8") as f:
-            f.write(html)
-        print("📄 dump.html 저장 완료 - VS Code에서 열어서 버튼 확인하세요")
+        # 회차 선택 + 조건 설정 + fdc_FlashSeatLoad 직접 호출 (한 번에)
+        result = ticket_page.evaluate(f'''() => {{
+            var li = document.querySelectorAll('#ulTime li')[{config.perf_time_index}];
+            if (!li) return "NO_LI";
 
-        # ───────── 결제 단계
-        ticket_page.wait_for_selector('//*[@id="StepCtrlBtn03"]/a[2]/img', timeout=600000)
+            // li에 on 클래스 추가
+            $j('#ulTime li').removeClass('on');
+            $j(li).addClass('on');
 
-        print("💳 결제 단계 진입")
+            // 필요한 값 모두 설정
+            var idTime = li.getAttribute("value");
+            $j("#IdTime").val(idTime);
+            jgIdSelTime = idTime;
 
-        ticket_page.click('//*[@id="StepCtrlBtn03"]/a[2]/img')
-        time.sleep(0.3)
+            // 조건 확인
+            var chk1 = $j("#IdTime").val();
+            var chk2 = $j("#ulTime > li.on").length;
+            if (!chk1 || chk1 == "0" || chk2 == 0) {{
+                return "FAIL: IdTime=" + chk1 + ", li.on=" + chk2;
+            }}
 
-        ticket_page.click('//*[@id="StepCtrlBtn04"]/a[2]/img')
-        time.sleep(0.3)
+            // 바로 좌석 로딩 호출 (fdc_ChoiceSeat 내부의 핵심 함수)
+            fdc_FlashSeatLoad();
+            return "OK: idTime=" + idTime;
+        }}''')
+        print(f"🪑 좌석선택 진입: {result}")
 
+        # iframe이 실제로 로딩될 때까지 반복 시도
+        seat_frame = None
+        for attempt in range(5):
+            # 1) iframe src가 DOM에 설정됐는지 확인
+            for _ in range(10):
+                time.sleep(0.5)
+                src = ticket_page.evaluate('''() => {
+                    var f = document.querySelector('iframe[name="ifrmSeatFrame"]');
+                    return f ? f.src : "";
+                }''')
+                if 'PerfSaleHtmlSeat' in src:
+                    break
+            else:
+                # src가 안 잡히면 fdc_FlashSeatLoad 재호출
+                print(f"  ⏳ iframe src 미설정, 재시도 ({attempt + 2})...")
+                ticket_page.evaluate('fdc_FlashSeatLoad()')
+                continue
+
+            # 2) Playwright 프레임 등록 대기
+            for _ in range(20):
+                time.sleep(0.5)
+                for f in ticket_page.frames:
+                    if 'PerfSaleHtmlSeat' in f.url:
+                        seat_frame = f
+                        break
+                if seat_frame:
+                    break
+
+            if seat_frame:
+                break
+            print(f"  ⏳ 프레임 등록 대기 실패, 재시도 ({attempt + 2})...")
+            ticket_page.evaluate('fdc_FlashSeatLoad()')
+
+        if not seat_frame:
+            print("❌ 좌석 iframe을 찾지 못함")
+            input("종료하려면 Enter")
+            raise SystemExit
+
+        print("🖼️ 좌석 iframe 진입!")
+
+        # 좌석 로딩 대기 → Playwright 네이티브 클릭으로 선택
+        seat_frame.wait_for_selector('div[name="tk"]', timeout=15000)
+        time.sleep(1)
+
+        # 보이는 좌석 중 첫 번째를 Playwright 클릭 (실제 마우스 이벤트)
+        seats = seat_frame.locator('div[name="tk"]')
+        count = seats.count()
+        selected = 0
+        for i in range(count):
+            seat = seats.nth(i)
+            if seat.is_visible():
+                seat.click()
+                selected += 1
+                time.sleep(0.3)
+                if selected >= 1:
+                    break
+        print(f"🪑 좌석 {selected}석 선택!")
+        time.sleep(1)
+
+        # 좌석선택 완료 버튼 클릭 (Playwright 네이티브 클릭)
+        seat_frame.locator('a:has(img.booking)').click()
+        print("✅ 좌석선택 완료 클릭! 서버 확인 대기...")
+
+        for i in range(60):
+            time.sleep(0.5)
+            area_display = ticket_page.evaluate(
+                'document.getElementById("SeatFlashArea").style.display'
+            )
+            if area_display == 'none':
+                break
+            if i % 10 == 9:
+                print(f"  ⏳ 서버 응답 대기 중... ({(i+1)*0.5:.0f}초)")
+        else:
+            print("⚠️ SeatFlashArea가 안 닫힘 — 수동으로 좌석선택 완료 눌러주세요")
+            input("완료 후 Enter...")
+
+        print("➡️ 좌석 확정 완료, 다음단계 이동")
+        time.sleep(1)
+
+        # ───────── step2 → step3: 다음단계
+        ticket_page.evaluate('fdc_VerifySelSeatNumber()')
+        time.sleep(2)
+
+        # ───────── step3: 할인/쿠폰 단계
+        ticket_page.wait_for_selector('#StepCtrlBtn03', state='visible', timeout=30000)
+        print("🎫 할인/쿠폰 단계 도착! 여기서부터 수동으로 진행하세요.")
+        input("결제까지 완료하면 Enter...")
+
+        # ───────── step5: 결제
         ticket_page.click(config.payment_xpath)
         ticket_page.select_option('#selBank', index=config.bank_select_index)
-
         ticket_page.click('#cbxAllAgree')
 
         if not config.dry_run:
             ticket_page.click('#imgPayEnd')
-            print("🎉 결제 완료")
+            print("🎉 결제 완료!")
+        else:
+            print("🧪 dry_run 모드 — 결제 버튼 안 누름")
 
         input("종료하려면 Enter")
 
