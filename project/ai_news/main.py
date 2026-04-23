@@ -16,10 +16,11 @@ model = genai.GenerativeModel('gemini-2.5-flash')
 
 app = FastAPI(title="AI News API")
 
-# Vercel 등 외부에서 호출할 수 있도록 CORS 설정 허용
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # 실제 운영시에는 Vercel 도메인만 넣기, 편리한 테스트를 위해 전체 허용
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
