@@ -3,8 +3,13 @@ name: Deploy to Render
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'project/ai_news/**'
+      - '.github/workflows/deploy.yml'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'project/ai_news/**'
 
 jobs:
   deploy:
@@ -23,13 +28,7 @@ jobs:
           cd project/ai_news
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      # 만약 테스트 코드가 있다면 여기에 추가할 수 있습니다.
-      # - name: Run tests
-      #   run: |
-      #     cd project/ai_news
-      #     pytest
-
+          
       - name: Trigger Render Deploy
         if: github.event_name == 'push'
         run: |
