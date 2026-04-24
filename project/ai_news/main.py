@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict
+from auth import router as auth_router
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -16,7 +17,16 @@ model = genai.GenerativeModel('gemini-2.5-flash')
 
 app = FastAPI(title="AI News API")
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000").split(",")
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:3000")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
+# 항상 로컬 개발 환경 허용
+default_origins = ["http://localhost:5173", "http://localhost:3000"]
+for default_origin in default_origins:
+    if default_origin not in allowed_origins:
+        allowed_origins.append(default_origin)
+
+app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
 
 app.add_middleware(
     CORSMiddleware,
