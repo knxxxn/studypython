@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict
 from auth import router as auth_router
+from todos import router as todos_router
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -27,6 +28,7 @@ for default_origin in default_origins:
         allowed_origins.append(default_origin)
 
 app.include_router(auth_router, prefix="/api/auth", tags=["auth"])
+app.include_router(todos_router, prefix="/api", tags=["data"])
 
 app.add_middleware(
     CORSMiddleware,
