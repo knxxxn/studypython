@@ -9,9 +9,14 @@ router = APIRouter()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+# service_role key로 클라이언트 생성 (RLS 우회 - 서버에서 user_id로 직접 필터링)
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY else None
+
+if not supabase:
+    print("Warning: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing - 투두/메모 API 비활성")
 
 
 def get_user_id_from_token(authorization: str) -> str:
