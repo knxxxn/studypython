@@ -76,7 +76,7 @@ if st.button(button_label, type="primary"):
             
             # Gemini AI 호출
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash') 
+            model = genai.GenerativeModel('gemini-3.1-flash-lite-preview') 
             response = model.generate_content(prompt)
             
             # 결과 출력
