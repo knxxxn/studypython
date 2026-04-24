@@ -46,6 +46,7 @@ async def signup(user: UserAuth):
         # 이미 존재하는 이메일이거나 비밀번호 규칙 미달 등 오류
         if isinstance(e, HTTPException):
             raise e
+        print(f"[Signup Error] {type(e).__name__}: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/login")
@@ -70,4 +71,8 @@ async def login(user: UserAuth):
             }
         }
     except Exception as e:
+        print(f"[Login Error] {type(e).__name__}: {e}")
+        error_msg = str(e).lower()
+        if "email not confirmed" in error_msg:
+            raise HTTPException(status_code=401, detail="이메일 인증이 완료되지 않았습니다. 가입 시 입력한 이메일의 인증 링크를 클릭해주세요.")
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 틀렸습니다.")
