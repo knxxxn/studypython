@@ -166,3 +166,73 @@ async def get_memos(authorization: str = Header(None)):
             raise e
         print(f"[Memos Get Error] {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── 글로벌 D-Day ──
+
+class DDayRequest(BaseModel):
+    title: str
+    date: str  # "YYYY-MM-DD"
+
+@router.post("/dday")
+async def save_dday(body: DDayRequest, authorization: str = Header(None)):
+    """D-Day를 저장 (유저당 1개, upsert 방식)"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        # 기존 D-Day 삭제 후 새로 삽입 (단일 D-Day 유지)
+        supabase.table("calendars").delete().eq("user_id", user_id).execute()
+        supabase.table("calendars").insert({
+            "user_id": user_id,
+            "title": body.title,
+            "date": body.date
+        }).execute()
+        return {"message": "D-Day 저장 완료"}
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[DDay Save Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/dday")
+async def delete_dday(authorization: str = Header(None)):
+    """D-Day를 삭제"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        supabase.table("calendars").delete().eq("user_id", user_id).execute()
+        return {"message": "D-Day 삭제 완료"}
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[DDay Delete Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/dday")
+async def get_dday(authorization: str = Header(None)):
+    """로그인한 유저의 D-Day를 가져옴"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        response = supabase.table("calendars").select("title, date").eq("user_id", user_id).execute()
+        if response.data:
+            row = response.data[0]
+            return {"title": row["title"], "date": row["date"]}
+        return None
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[DDay Get Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
