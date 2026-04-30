@@ -14,7 +14,7 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 genai.configure(api_key=api_key)
-model = genai.GenerativeModel('Gemini 3.1 Flash Lite')
+model = genai.GenerativeModel('gemini-3.1-flash-lite')
 
 app = FastAPI(title="AI News API")
 
@@ -55,14 +55,31 @@ def fetch_rss_news(keyword: str):
     else:
         url = "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
     
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
     response = requests.get(url, headers=headers)
     
+    # 만약 기본 주소에서 실패하거나 아이템을 못 가져오면, '대한민국' 검색으로 폴백(Fallback)
     if response.status_code != 200:
-        return []
+        if not keyword.strip():
+            fallback_url = "https://news.google.com/rss/search?q=대한민국&hl=ko&gl=KR&ceid=KR:ko"
+            response = requests.get(fallback_url, headers=headers)
+            if response.status_code != 200:
+                return []
+        else:
+            return []
         
     soup = BeautifulSoup(response.content, "xml")
     items = soup.find_all("item")
+    
+    # 아이템이 비어있다면 폴백 주소로 한 번 더 시도 (특히 공백 키워드일 때 Render 서버 등에서 차단될 경우 대비)
+    if not items and not keyword.strip():
+        fallback_url = "https://news.google.com/rss/search?q=대한민국&hl=ko&gl=KR&ceid=KR:ko"
+        response = requests.get(fallback_url, headers=headers)
+        soup = BeautifulSoup(response.content, "xml")
+        items = soup.find_all("item")
     
     news_list = []
     # 최신 뉴스 10개만 가져오기
