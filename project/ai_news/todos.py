@@ -96,6 +96,11 @@ async def get_todos(authorization: str = Header(None)):
     user_id = get_user_id_from_token(authorization)
     
     try:
+        # 1년 지난 데이터 DB 자동 삭제
+        from datetime import datetime, timedelta
+        cutoff_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+        supabase.table("todos").delete().eq("user_id", user_id).lt("date", cutoff_date).execute()
+
         response = supabase.table("todos").select("date, items").eq("user_id", user_id).execute()
         
         # { "2026-04-24": [...], "2026-04-25": [...] } 형태로 변환
@@ -153,6 +158,11 @@ async def get_memos(authorization: str = Header(None)):
     user_id = get_user_id_from_token(authorization)
     
     try:
+        # 1년 지난 데이터 DB 자동 삭제
+        from datetime import datetime, timedelta
+        cutoff_date = (datetime.now() - timedelta(days=365)).strftime("%Y-%m-%d")
+        supabase.table("memos").delete().eq("user_id", user_id).lt("date", cutoff_date).execute()
+
         response = supabase.table("memos").select("date, content").eq("user_id", user_id).execute()
         
         # { "2026-04-24": "메모 내용", ... } 형태로 변환
