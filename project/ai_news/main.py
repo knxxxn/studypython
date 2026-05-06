@@ -50,7 +50,8 @@ class NewsResponse(BaseModel):
     news_list: List[NewsItem]
 
 def fetch_rss_news(keyword: str):
-    if keyword.strip():
+    keyword = keyword.strip()
+    if keyword:
         url = f"https://news.google.com/rss/search?q={keyword}&hl=ko&gl=KR&ceid=KR:ko"
     else:
         url = "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
@@ -59,28 +60,28 @@ def fetch_rss_news(keyword: str):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
+    
     response = requests.get(url, headers=headers)
+    items = []
     
-    # 만약 기본 주소에서 실패하거나 아이템을 못 가져오면, 안정적인 국내 언론사 RSS로 폴백(Fallback)
-    if response.status_code != 200:
-        if not keyword.strip():
-            fallback_url = "https://rss.donga.com/total.xml"
-            response = requests.get(fallback_url, headers=headers)
-            if response.status_code != 200:
-                return []
-        else:
-            return []
-        
-    soup = BeautifulSoup(response.content, "xml")
-    items = soup.find_all("item")
-    
-    # 아이템이 비어있다면 폴백 주소로 한 번 더 시도 (특히 공백 키워드일 때 Render 서버 등에서 차단될 경우 대비)
-    if not items and not keyword.strip():
-        fallback_url = "https://rss.donga.com/total.xml"
-        response = requests.get(fallback_url, headers=headers)
+    if response.status_code == 200:
         soup = BeautifulSoup(response.content, "xml")
         items = soup.find_all("item")
-    
+        
+    # 구글 뉴스에서 실패하거나 아이템을 못 가져오면 안정적인 국내 언론사 RSS로 폴백(Fallback)
+    if not items:
+        fallback_url = "https://rss.donga.com/total.xml"
+        fallback_response = requests.get(fallback_url, headers=headers)
+        if fallback_response.status_code == 200:
+            soup = BeautifulSoup(fallback_response.content, "xml")
+            all_items = soup.find_all("item")
+            
+            # 키워드가 있다면 제목에서 키워드 필터링
+            if keyword:
+                items = [item for item in all_items if keyword.lower() in item.title.text.lower()]
+            else:
+                items = all_items
+
     news_list = []
     # 최신 뉴스 10개만 가져오기
     for item in items[:10]:
