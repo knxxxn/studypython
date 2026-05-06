@@ -57,7 +57,7 @@ def fetch_rss_news(keyword: str):
         url = "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko"
     
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
     }
     
@@ -68,8 +68,27 @@ def fetch_rss_news(keyword: str):
         soup = BeautifulSoup(response.content, "xml")
         items = soup.find_all("item")
         
-    # 구글 뉴스에서 실패하거나 아이템을 못 가져오면 안정적인 국내 언론사 RSS로 폴백(Fallback)
+    news_list = []
+    
+    # 구글 뉴스에서 실패하거나 아이템을 못 가져오면 폴백(Fallback) 시도
     if not items:
+        # 1. 키워드가 있을 경우 Daum 뉴스 검색 결과 스크래핑 시도
+        if keyword:
+            daum_url = f"https://search.daum.net/search?w=news&q={keyword}"
+            daum_response = requests.get(daum_url, headers=headers)
+            if daum_response.status_code == 200:
+                daum_soup = BeautifulSoup(daum_response.content, "html.parser")
+                daum_articles = daum_soup.select(".item-title .tit-g a")
+                for a in daum_articles[:10]:
+                    title = a.text.strip()
+                    link = a.get("href", "")
+                    if title and link:
+                        news_list.append({"title": title, "link": link})
+                
+                if news_list:
+                    return news_list # 성공적으로 가져왔다면 바로 반환
+        
+        # 2. 키워드가 없거나 Daum 검색에서도 실패한 경우 동아일보 전체 RSS로 최후 폴백
         fallback_url = "https://rss.donga.com/total.xml"
         fallback_response = requests.get(fallback_url, headers=headers)
         if fallback_response.status_code == 200:
@@ -82,12 +101,13 @@ def fetch_rss_news(keyword: str):
             else:
                 items = all_items
 
-    news_list = []
-    # 최신 뉴스 10개만 가져오기
-    for item in items[:10]:
-        title = item.title.text
-        link = item.link.text
-        news_list.append({"title": title, "link": link})
+    # 일반적인 RSS 파싱 (구글 뉴스 성공 또는 동아일보 폴백 성공 시)
+    if not news_list:
+        # 최신 뉴스 10개만 가져오기
+        for item in items[:10]:
+            title = item.title.text.strip()
+            link = item.link.text.strip()
+            news_list.append({"title": title, "link": link})
         
     return news_list
 
