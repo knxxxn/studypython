@@ -246,3 +246,70 @@ async def get_dday(authorization: str = Header(None)):
         print(f"[DDay Get Error] {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ── 뉴스 스크랩 ──
+
+class NewsScrapRequest(BaseModel):
+    title: str
+    link: str
+    summary: Optional[str] = ""
+    memo: Optional[str] = ""
+
+@router.post("/scraps")
+async def save_scrap(body: NewsScrapRequest, authorization: str = Header(None)):
+    """뉴스 스크랩 저장"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        response = supabase.table("news_scraps").insert({
+            "user_id": user_id,
+            "title": body.title,
+            "link": body.link,
+            "summary": body.summary,
+            "memo": body.memo
+        }).execute()
+        return {"message": "스크랩 저장 완료", "data": response.data}
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[Scrap Save Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/scraps")
+async def get_scraps(authorization: str = Header(None)):
+    """로그인한 유저의 뉴스 스크랩 목록 가져오기"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        response = supabase.table("news_scraps").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+        return response.data
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[Scrap Get Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/scraps/{scrap_id}")
+async def delete_scrap(scrap_id: str, authorization: str = Header(None)):
+    """스크랩 삭제"""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Supabase 설정이 안 되어있습니다.")
+    
+    user_id = get_user_id_from_token(authorization)
+    
+    try:
+        supabase.table("news_scraps").delete().eq("id", scrap_id).eq("user_id", user_id).execute()
+        return {"message": "스크랩 삭제 완료"}
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        print(f"[Scrap Delete Error] {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+

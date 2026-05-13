@@ -55,3 +55,21 @@ CREATE POLICY "Users can view own calendars" ON public.calendars FOR SELECT USIN
 CREATE POLICY "Users can insert own calendars" ON public.calendars FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own calendars" ON public.calendars FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own calendars" ON public.calendars FOR DELETE USING (auth.uid() = user_id);
+
+-- 4. News Scraps 테이블 (뉴스 스크랩 저장)
+CREATE TABLE public.news_scraps (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    link TEXT NOT NULL,
+    summary TEXT,
+    memo TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.news_scraps ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own news scraps" ON public.news_scraps FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own news scraps" ON public.news_scraps FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own news scraps" ON public.news_scraps FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own news scraps" ON public.news_scraps FOR DELETE USING (auth.uid() = user_id);
